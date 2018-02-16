@@ -49,9 +49,13 @@ matrix:
 scala:
   - 2.10.7
 
-# Undo _JAVA_OPTIONS environment variable
-before_script:
-  - _JAVA_OPTIONS=
+before_install:
+  # https://github.com/travis-ci/travis-ci/issues/8408
+  - unset _JAVA_OPTIONS
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
+      brew update;
+      brew install sbt;
+    fi
 
 cache:
   directories:
