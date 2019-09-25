@@ -66,21 +66,34 @@ for /F "tokens=1*" %%g in ("%*") do (
   if "%%~g" == "" goto args_end
 
   echo g tilde "%%~g"
+  echo h tilde "%%~h"
 
-  if "%%~g" =="-jvm-debug" set JVM_DEBUG=true
-  if "%%~g" == "--jvm-debug" set JVM_DEBUG=true
+  if "%%~g" =="-jvm-debug" (
+    set JVM_DEBUG=true
+    if NOT x%%h == x call :args_loop %%h
+  )
+  if "%%~g" == "--jvm-debug" (
+    set JVM_DEBUG=true
+    if NOT x%%h == x call :args_loop %%h
+  )
 
-  if "%%~g" == "-java-home" set SET_JAVA_HOME=true
-  if "%%~g" == "--java-home" set SET_JAVA_HOME=true
+  if "%%~g" == "-java-home" (
+    set SET_JAVA_HOME=true
+    if NOT x%%h == x call :args_loop %%h
+  )
+  if "%%~g" == "--java-home" (
+    set SET_JAVA_HOME=true
+    if NOT x%%h == x call :args_loop %%h
+  )
 
   if "!JVM_DEBUG!" == "true" (
-    set /a JVM_DEBUG_PORT=5005 2>nul >nul
-  ) else if "!JVM_DEBUG!" == "true" (
     set /a JVM_DEBUG_PORT=%%g 2>nul >nul
     if not "%%~g" == "!JVM_DEBUG_PORT!" (
       set SBT_ARGS=!SBT_ARGS! %%g
     )
-  ) else if /I "%%g" == "new" (
+  )
+
+  if /I "%%g" == "new" (
     set sbt_new=true
     set SBT_ARGS=!SBT_ARGS! %%g
   ) else (
@@ -89,18 +102,16 @@ for /F "tokens=1*" %%g in ("%*") do (
 
   if "!SET_JAVA_HOME!" == "true" (
     echo "java home true"
-    echo g %%g
-    echo h %%h
 
     set SET_JAVA_HOME=false
-    if NOT "%%~h" == "" (
-      if exist "%%~h\bin\java.exe" (
-        set _JAVACMD="%%~h\bin\java.exe"
-        set JAVA_HOME="%%~h"
-        set JDK_HOME="%%~h"
-        if NOT "x%%i"=="x" (call :args_loop %%i) else (goto args_end)
+    if NOT "%%~g" == "" (
+      if exist "%%~g\bin\java.exe" (
+        set _JAVACMD="%%~g\bin\java.exe"
+        set JAVA_HOME="%%~g"
+        set JDK_HOME="%%~g"
+        if NOT x%%h == x call :args_loop %%h
       ) else (
-        echo Directory "%%~h" for JAVA_HOME is not valid
+        echo Directory "%%~g" for JAVA_HOME is not valid
         goto error
       )
     ) else (
@@ -109,7 +120,7 @@ for /F "tokens=1*" %%g in ("%*") do (
     )
   )
 
-  if NOT "x%%h"=="x" call :args_loop %%h
+  if NOT x%%h == x call :args_loop %%h
 )
 
 :args_end
