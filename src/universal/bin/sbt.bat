@@ -46,8 +46,8 @@ rem We use the value of the JAVACMD environment variable if defined
 set _JAVACMD=%JAVACMD%
 
 if "%_JAVACMD%"=="" (
-  if not "%JAVA_HOME%"=="" (
-    if exist "%JAVA_HOME%\bin\java.exe" set "_JAVACMD=%JAVA_HOME%\bin\java.exe"
+  if not "!JAVA_HOME!"=="" (
+    if exist "!~JAVA_HOME!\bin\java.exe" set "_JAVACMD=!~JAVA_HOME!\bin\java.exe"
   )
 )
 
@@ -62,48 +62,56 @@ if "%_JAVA_OPTS%"=="" set _JAVA_OPTS=%DEFAULT_JAVA_OPTS%
 set INIT_SBT_VERSION=_TO_BE_REPLACED
 
 :args_loop
-if "%~1" == "" goto args_end
+for /F "tokens=1*" %%g in ("%*") do (
+  if "%%~g" == "" goto args_end
 
-if "%~1" == "-jvm-debug" set JVM_DEBUG=true
-if "%~1" == "--jvm-debug" set JVM_DEBUG=true
+  echo g tilde "%%~g"
 
-if "%~1" == "-java-home" set SET_JAVA_HOME=true
-if "%~1" == "--java-home" set SET_JAVA_HOME=true
+  if "%%~g" =="-jvm-debug" set JVM_DEBUG=true
+  if "%%~g" == "--jvm-debug" set JVM_DEBUG=true
 
-if "%JVM_DEBUG%" == "true" (
-  set /a JVM_DEBUG_PORT=5005 2>nul >nul
-) else if "!JVM_DEBUG!" == "true" (
-  set /a JVM_DEBUG_PORT=%1 2>nul >nul
-  if not "%~1" == "!JVM_DEBUG_PORT!" (
-    set SBT_ARGS=!SBT_ARGS! %1
+  if "%%~g" == "-java-home" set SET_JAVA_HOME=true
+  if "%%~g" == "--java-home" set SET_JAVA_HOME=true
+
+  if "!JVM_DEBUG!" == "true" (
+    set /a JVM_DEBUG_PORT=5005 2>nul >nul
+  ) else if "!JVM_DEBUG!" == "true" (
+    set /a JVM_DEBUG_PORT=%%g 2>nul >nul
+    if not "%%~g" == "!JVM_DEBUG_PORT!" (
+      set SBT_ARGS=!SBT_ARGS! %%g
+    )
+  ) else if /I "%%g" == "new" (
+    set sbt_new=true
+    set SBT_ARGS=!SBT_ARGS! %%g
+  ) else (
+    set SBT_ARGS=!SBT_ARGS! %%g
   )
-) else if /I "%~1" == "new" (
-  set sbt_new=true
-  set SBT_ARGS=!SBT_ARGS! %1
-) else (
-  set SBT_ARGS=!SBT_ARGS! %1
-)
 
-if "%SET_JAVA_HOME%" == "true" (
-  set SET_JAVA_HOME=
-  if NOT "%~2" == "" (
-    if exist "%~2\bin\java.exe" (
-      set _JAVACMD="%~2\bin\java.exe"
-      set JAVA_HOME="%~2"
-      set JDK_HOME="%~2"
-      shift
+  if "!SET_JAVA_HOME!" == "true" (
+    echo "java home true"
+    echo g %%g
+    echo h %%h
+
+    set SET_JAVA_HOME=false
+    if NOT "%%~h" == "" (
+      if exist "%%~h\bin\java.exe" (
+        set _JAVACMD="%%~h\bin\java.exe"
+        set JAVA_HOME="%%~h"
+        set JDK_HOME="%%~h"
+        if NOT "x%%i"=="x" (call :args_loop %%i) else (goto args_end)
+      ) else (
+        echo Directory "%%~h" for JAVA_HOME is not valid
+        goto error
+      )
     ) else (
-      echo Directory "%~2" for JAVA_HOME is not valid
+      echo Second argument for --java-home missing
       goto error
     )
-  ) else (
-    echo Second argument for --java-home missing
-    goto error
   )
+
+  if NOT "x%%h"=="x" call :args_loop %%h
 )
 
-shift
-goto args_loop
 :args_end
 
 rem Confirm a user's intent if the current directory does not look like an sbt
